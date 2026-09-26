@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Project page for Qoboter, a robot-centric scaffold for VLM-based manipulation: task gallery and real-robot demonstrations.">
+<title>Robot-Centric Scaffolding Advances the Frontier of VLM-Based Manipulation</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="venue">Under review at ICLR 2027</p>
+    <h1>Robot-Centric Scaffolding Advances the Frontier of VLM-Based Manipulation</h1>
+    <p class="authors">Anonymous Authors</p>
+    <ul class="links">
+      <li>
+        <span class="btn" role="link" aria-disabled="true" title="Not yet available">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>
+          Paper <span class="soon">not yet available</span>
+        </span>
+      </li>
+      <li>
+        <span class="btn" role="link" aria-disabled="true" title="Not yet available">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/></svg>
+          Code <span class="soon">not yet available</span>
+        </span>
+      </li>
+      <li>
+        <a class="btn" href="#tasks">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg>
+          Tasks
+        </a>
+      </li>
+      <li>
+        <a class="btn" href="#real">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="14" height="14" rx="2"/><path d="M16.5 10l5-3v10l-5-3"/></svg>
+          Real robot
+        </a>
+      </li>
+    </ul>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="block abstract" id="abstract" aria-labelledby="abstract-h">
+  <div class="wrap">
+    <h2 id="abstract-h">Abstract</h2>
+    <p>In coding, what turned the nascent abilities of foundation models into reliable behavior was not only stronger models but also the scaffolding built around them. General-purpose vision-language models (VLMs) can now complete some robotic manipulation tasks zero-shot, which raises the question of whether existing coding scaffolds can serve manipulation directly. We find that they can complete some tasks on a robot but repeatedly expose problems, because their default assumptions at the loop, tool, and skill levels only partly hold in embodied settings. We therefore propose Qoboter, a robot-centric scaffold: its interaction loop binds every action to a fresh observation and makes retries after a failure rest on new evidence, up to a cap; its geometric tools lift 2D identifications to 3D targets and check reachability before execution; and its skills guide the model to trust observed evidence and verify each step. We evaluate on four simulators and a real robot with a success-cost frontier that jointly measures success, tokens, and interaction turns. Qoboter outperforms general-purpose scaffolds such as Codex and Claude Code, clearly raising success while token consumption stays comparable or falls slightly, and it transfers to models not used during development.</p>
+  </div>
+</section>
+
+<section class="block" id="tasks" aria-labelledby="tasks-h">
+  <div class="wrap">
+    <h2 id="tasks-h">Evaluation tasks</h2>
+    <p class="lead">Ten tasks in each of four simulators and five on a real robot, across three embodiments. Each image shows the initial scene of its task.</p>
+
+    <div class="stats">
+      <dl>
+        <div><dt>simulators</dt><dd>4</dd></div>
+        <div><dt>real robot</dt><dd>1</dd></div>
+        <div><dt>embodiments</dt><dd>3</dd></div>
+        <div><dt>tasks</dt><dd>45</dd></div>
+      </dl>
+      <ul class="legend" aria-label="Embodiments">
+        <li><span class="dot emb-arx" aria-hidden="true"></span><strong>ARX X5</strong> <span class="where">Real robot, RoboDojo</span></li>
+        <li><span class="dot emb-aloha" aria-hidden="true"></span><strong>Aloha-AgileX</strong> <span class="where">RoboTwin</span></li>
+        <li><span class="dot emb-franka" aria-hidden="true"></span><strong>Franka Panda</strong> <span class="where">RoboLab, LIBERO</span></li>
+      </ul>
+    </div>
+
+    <div class="filter" id="gallery-filter" role="group" aria-label="Filter tasks by environment"></div>
+    <p class="sr-status" id="gallery-status" aria-live="polite"></p>
+    <div id="gallery-groups"></div>
+    <noscript><p class="note">The task gallery is rendered by a small script in <code>assets/js/</code>; please enable JavaScript to view it.</p></noscript>
+
+    <p class="note">Simulation instructions are quoted verbatim from the benchmarks. <sup>&dagger;</sup> Trailing execution hints omitted. Real-robot episodes share a single environment, so their task IDs are descriptive names.</p>
+  </div>
+</section>
+
+<section class="block" id="real" aria-labelledby="real-h">
+  <div class="wrap">
+    <h2 id="real-h">Real robot</h2>
+    <p class="lead">The five real-robot tasks probe what the simulators render poorly or not at all: placement with little margin, a soft object, contact-rich wiping, and an articulated drawer. The robot runs the same environment server interface as the simulators, so every scaffold reaches it exactly as it does in simulation.</p>
+
+    <ul class="setup">
+      <li>
+        <span class="k">Robot</span>
+        <p>Dual-arm ARX X5: two 6-DoF arms, each with a position-controlled parallel gripper, side by side in front of a tabletop.</p>
+      </li>
+      <li>
+        <span class="k">Cameras</span>
+        <p>Three Intel RealSense D405: one fixed head camera looking down at the table and one on each wrist, all 640&times;480 RGB.</p>
+      </li>
+      <li>
+        <span class="k">Safety</span>
+        <p>Every command passes workspace, inverse-kinematics, and inter-arm clearance checks before the arm moves. An operator holds the physical emergency stop throughout every episode.</p>
+      </li>
+      <li>
+        <span class="k">Success</span>
+        <p>An on-site operator judges each episode against the task's pre-registered observable success condition. The agent's own claim that it has finished is never counted.</p>
+      </li>
+    </ul>
+
+    <div class="real-grid" id="real-slots"></div>
+    <noscript><p class="note">The real-robot slots are rendered by a small script in <code>assets/js/</code>; please enable JavaScript to view them.</p></noscript>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Anonymous project page accompanying a submission under review at ICLR 2027.</p>
+  </div>
+</footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>
