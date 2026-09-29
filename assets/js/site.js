@@ -235,7 +235,12 @@
 
   // ------------------------------------------------------------ real robot
   var realRoot = document.getElementById("real-slots");
-  var availability = [];
+  // The repository already contains the configured real-robot videos.  Some
+  // static mirrors normalize ranged requests in a way that makes a probing
+  // fetch look unsuccessful even though the media URL is playable.  Treat a
+  // configured video path as available and let the <video> element handle
+  // normal media loading instead of replacing it with a false placeholder.
+  var availability = D.real.map(function (r) { return Boolean(r.video); });
   var activeReal = 0;
 
   function videoPlaceholder(r) {
@@ -329,7 +334,6 @@
   }
 
   D.real.forEach(function (r, index) {
-    availability[index] = false;
     var state = el("small", { class: "video-option-state", text: "Preview" });
     var button = el("button", { type: "button", class: "video-option",
                                 "aria-pressed": "false",
@@ -349,12 +353,8 @@
     buttons.push(button);
     selector.appendChild(button);
 
-    probeVideo(r.video).then(function (ok) {
-      availability[index] = ok;
-      button.classList.toggle("has-video", ok);
-      state.textContent = ok ? "Watch rollout" : "Preview";
-      if (index === activeReal) renderRealVideo(index, false);
-    });
+    button.classList.toggle("has-video", availability[index]);
+    state.textContent = availability[index] ? "Watch rollout" : "Preview";
   });
 
   realRoot.appendChild(el("div", { class: "real-video-gallery" }, [stage, selector]));
