@@ -65,8 +65,18 @@
         el("code", { class: "task-id", text: t.id }),
         instructionNode(t.instruction, t.hint)
       ]);
+      var frameChildren = [img];
+      if (t.video) {
+        var watch = el("button", { type: "button", class: "task-watch",
+                                   "aria-label": "Watch successful rollout for " + t.label }, [
+          el("span", { "aria-hidden": "true", text: "▶" }),
+          el("span", { text: "Watch" })
+        ]);
+        watch.addEventListener("click", function () { showSimulationTask(t.env, t.id); });
+        frameChildren.push(watch);
+      }
       grid.appendChild(el("li", null, [el("figure", { class: "task-card" }, [
-        el("div", { class: "frame" }, [img]), cap])]));
+        el("div", { class: "frame" }, frameChildren), cap])]));
     });
     var section = el("section", { class: "task-group", "data-env": env.key,
                                   "aria-label": env.name + " tasks" }, [head, grid]);
@@ -102,35 +112,165 @@
   }
   setFilter("all");
 
+  // ----------------------------------------------------- simulation videos
+  var simRoot = document.getElementById("sim-video-gallery");
+  var simEnvTabs = [];
+  var simOptionButtons = [];
+  var simActiveTask = null;
+
+  function simulationPoster(t) {
+    return "assets/gallery/" + t.img + ".jpg";
+  }
+
+  function simulationMedia(t, autoplay) {
+    if (!t.video) {
+      return el("div", { class: "sim-video-placeholder" }, [
+        el("img", { src: simulationPoster(t), width: "640", height: "480", decoding: "async",
+                    alt: "Initial scene of “" + t.label + "”" }),
+        el("span", { class: "video-pending", text: "No successful rollout in this run" })
+      ]);
+    }
+    var v = el("video", { controls: "", muted: "", playsinline: "", preload: "metadata",
+                          poster: simulationPoster(t),
+                          "aria-label": "Successful zero-shot simulation rollout: " + t.label });
+    v.muted = true;
+    v.src = t.video;
+    if (autoplay) {
+      v.addEventListener("loadedmetadata", function () { v.play().catch(function () {}); }, { once: true });
+    }
+    return v;
+  }
+
+  var simMedia = el("div", { class: "sim-video-media" });
+  var simIndex = el("span", { class: "sim-video-index" });
+  var simTitle = el("strong", { class: "sim-video-title" });
+  var simEnvLabel = el("span", { class: "sim-video-env" });
+  var simInstruction = el("p", { class: "sim-video-instruction" });
+  var simStage = el("div", { class: "sim-video-stage" }, [
+    simMedia,
+    el("div", { class: "sim-video-caption" }, [
+      el("div", { class: "sim-video-heading" }, [simIndex, simTitle, simEnvLabel]),
+      simInstruction
+    ])
+  ]);
+  var simTabs = el("div", { class: "sim-video-tabs", role: "group",
+                             "aria-label": "Select simulation environment" });
+  var simList = el("div", { class: "sim-video-list", role: "list",
+                             "aria-label": "Select a simulation task" });
+
+  function renderSimulationTask(t, autoplay) {
+    simActiveTask = t;
+    var oldVideo = simMedia.querySelector("video");
+    if (oldVideo) oldVideo.pause();
+    simMedia.textContent = "";
+    simMedia.appendChild(simulationMedia(t, autoplay));
+    var envTasks = byEnv[t.env];
+    simIndex.textContent = String(envTasks.indexOf(t) + 1).padStart(2, "0") + " / " + String(envTasks.length).padStart(2, "0");
+    simTitle.textContent = t.label;
+    simEnvLabel.textContent = envOf(t.env).name + (t.video ? " · successful rollout" : " · no success available");
+    simInstruction.textContent = t.instruction;
+    simOptionButtons.forEach(function (button) {
+      var selected = button.getAttribute("data-task") === t.id;
+      button.classList.toggle("active", selected);
+      button.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
+  }
+
+  function renderSimulationEnv(envKey, taskId, autoplay) {
+    var env = envOf(envKey);
+    var tasks = byEnv[envKey];
+    simEnvTabs.forEach(function (button) {
+      var selected = button.getAttribute("data-env") === envKey;
+      button.classList.toggle("active", selected);
+      button.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
+    simList.textContent = "";
+    simList.setAttribute("aria-label", "Select a " + env.name + " task");
+    simOptionButtons = [];
+    tasks.forEach(function (t, index) {
+      var button = el("button", { type: "button", class: "sim-video-option" + (t.video ? " has-video" : " no-video"),
+                                  "data-task": t.id, "aria-pressed": "false",
+                                  "aria-label": (t.video ? "Play successful rollout for " : "Show task without a successful rollout: ") + t.label }, [
+        el("div", { class: "sim-option-thumb" }, [
+          el("img", { src: simulationPoster(t), width: "640", height: "480", loading: "lazy", decoding: "async",
+                      alt: "Preview of “" + t.label + "”" }),
+          el("span", { class: "sim-option-number", text: String(index + 1).padStart(2, "0") })
+        ]),
+        el("span", { class: "sim-option-copy" }, [
+          el("small", { text: t.video ? "Successful rollout" : "No successful rollout" }),
+          el("strong", { text: t.label })
+        ])
+      ]);
+      button.addEventListener("click", function () { renderSimulationTask(t, true); });
+      simOptionButtons.push(button);
+      simList.appendChild(button);
+    });
+    var selected = tasks.filter(function (t) { return t.id === taskId; })[0] ||
+                   tasks.filter(function (t) { return t.video; })[0] || tasks[0];
+    renderSimulationTask(selected, autoplay);
+  }
+
+  function showSimulationTask(envKey, taskId) {
+    if (!simRoot) return;
+    renderSimulationEnv(envKey, taskId, true);
+    simRoot.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  if (simRoot) {
+    D.envs.filter(function (env) { return env.key !== "real"; }).forEach(function (env) {
+      var successCount = byEnv[env.key].filter(function (t) { return Boolean(t.video); }).length;
+      var button = el("button", { type: "button", class: "sim-env-tab", "data-env": env.key,
+                                  "aria-pressed": "false" }, [
+        el("span", { class: "dot emb-" + env.embodiment, "aria-hidden": "true" }),
+        el("span", { text: env.name }),
+        el("small", { text: successCount + "/" + byEnv[env.key].length })
+      ]);
+      button.addEventListener("click", function () { renderSimulationEnv(env.key, null, false); });
+      simEnvTabs.push(button);
+      simTabs.appendChild(button);
+    });
+    simRoot.appendChild(el("div", { class: "sim-video-gallery" }, [simTabs, simStage, simList]));
+    renderSimulationEnv("robodojo", null, false);
+  }
+
   // ------------------------------------------------------------ real robot
   var realRoot = document.getElementById("real-slots");
+  var availability = [];
+  var activeReal = 0;
 
-  function placeholder(r) {
-    return el("div", { class: "player placeholder" }, [
-      el("img", { src: r.poster, width: "640", height: "480", loading: "lazy", decoding: "async",
-                  alt: "Initial scene of the real-robot task “" + r.label + "” (video not yet available)" }),
-      el("span", { class: "pending", text: "Video to be added" })
+  function videoPlaceholder(r) {
+    return el("div", { class: "real-video-placeholder" }, [
+      el("img", { src: r.poster, width: "640", height: "480", decoding: "async",
+                  alt: "Initial scene of the real-robot task “" + r.label + "”" }),
+      el("span", { class: "video-pending", text: "Video to be added" })
     ]);
   }
 
-  function videoPlayer(r) {
+  function videoPlayer(r, autoplay) {
     var v = el("video", { controls: "", muted: "", playsinline: "", preload: "metadata",
-                          poster: r.poster, width: "640", height: "480",
-                          "aria-label": "Real-robot episode: " + r.label });
+                          poster: r.poster, "aria-label": "Successful real-robot episode: " + r.label });
     v.muted = true;
-    v.appendChild(el("source", { src: r.video, type: "video/mp4" }));
-    return el("div", { class: "player" }, [v]);
+    v.src = r.video;
+    if (autoplay) {
+      v.addEventListener("loadedmetadata", function () { v.play().catch(function () {}); }, { once: true });
+    }
+    return v;
   }
 
   // Resolve true if the video file exists. Over http(s) a ranged GET is aborted
-  // as soon as headers arrive; from file:// (where fetch is blocked) a detached
-  // media element is probed instead.
+  // as soon as headers arrive; from file:// a detached media element is probed.
   function probeVideo(url) {
     function mediaProbe() {
       return new Promise(function (resolve) {
         var v = document.createElement("video");
         var done = false;
-        function finish(ok) { if (!done) { done = true; v.removeAttribute("src"); v.load(); resolve(ok); } }
+        function finish(ok) {
+          if (done) return;
+          done = true;
+          v.removeAttribute("src");
+          v.load();
+          resolve(ok);
+        }
         v.preload = "metadata";
         v.muted = true;
         v.addEventListener("loadedmetadata", function () { finish(true); });
@@ -145,30 +285,78 @@
                         signal: ctrl ? ctrl.signal : undefined })
       .then(function (res) {
         if (ctrl) ctrl.abort();
-        return res.ok; // 200 or 206
+        return res.ok;
       })
       .catch(function () { return mediaProbe(); });
   }
 
-  D.real.forEach(function (r) {
-    var slot = el("div", { class: "slot-media" }, [placeholder(r)]);
-    var body = el("div", { class: "slot-body" }, [
-      el("div", { class: "slot-title" }, [
-        el("h3", { text: r.label }),
-        el("code", { class: "task-id", text: r.id })
+  var stageMedia = el("div", { class: "real-video-media" });
+  var stageIndex = el("span", { class: "real-video-index" });
+  var stageTitle = el("strong", { class: "real-video-title" });
+  var stageSuccess = el("span", { class: "real-video-success" });
+  var stageInstruction = el("p", { class: "real-video-instruction" });
+  var stageChallenge = el("p", { class: "real-video-challenge" });
+  var stage = el("div", { class: "real-video-stage" }, [
+    stageMedia,
+    el("div", { class: "real-video-caption" }, [
+      el("div", { class: "real-video-heading" }, [stageIndex, stageTitle, stageSuccess]),
+      stageInstruction,
+      stageChallenge
+    ])
+  ]);
+  var selector = el("div", { class: "real-video-list", role: "list",
+                              "aria-label": "Select a successful real-robot demonstration" });
+  var buttons = [];
+
+  function renderRealVideo(index, autoplay) {
+    var r = D.real[index];
+    activeReal = index;
+    var oldVideo = stageMedia.querySelector("video");
+    if (oldVideo) oldVideo.pause();
+    stageMedia.textContent = "";
+    stageMedia.appendChild(availability[index] ? videoPlayer(r, autoplay) : videoPlaceholder(r));
+    stageIndex.textContent = String(index + 1).padStart(2, "0") + " / " + String(D.real.length).padStart(2, "0");
+    stageTitle.textContent = r.label;
+    stageSuccess.textContent = (r.success || "") + " success";
+    stageInstruction.textContent = r.instruction;
+    stageChallenge.textContent = r.challenge || "";
+    stageChallenge.hidden = !r.challenge;
+    buttons.forEach(function (button, i) {
+      var selected = i === index;
+      button.classList.toggle("active", selected);
+      button.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
+  }
+
+  D.real.forEach(function (r, index) {
+    availability[index] = false;
+    var state = el("small", { class: "video-option-state", text: "Preview" });
+    var button = el("button", { type: "button", class: "video-option",
+                                "aria-pressed": "false",
+                                "aria-label": "Select " + r.label + " demonstration" }, [
+      el("div", { class: "video-option-thumb" }, [
+        el("img", { src: r.poster, width: "640", height: "480", loading: "lazy", decoding: "async",
+                    alt: "Preview of “" + r.label + "”" }),
+        el("span", { class: "video-option-number", text: String(index + 1).padStart(2, "0") })
       ]),
-      instructionNode(r.instruction, r.hint),
-      r.challenge ? el("p", { class: "challenge" }, [el("span", { class: "challenge-k", text: "Challenge: " }),
-                                                 document.createTextNode(r.challenge)]) : null,
-      r.caption ? el("p", { class: "slot-caption", text: r.caption }) : null
+      el("span", { class: "video-option-copy" }, [
+        state,
+        el("strong", { text: r.label }),
+        el("span", { class: "video-option-score", text: (r.success || "") + " success" })
+      ])
     ]);
-    var card = el("article", { class: "slot", id: "real-" + r.id }, [slot, body]);
-    realRoot.appendChild(card);
+    button.addEventListener("click", function () { renderRealVideo(index, true); });
+    buttons.push(button);
+    selector.appendChild(button);
 
     probeVideo(r.video).then(function (ok) {
-      if (!ok) return;
-      slot.replaceChild(videoPlayer(r), slot.firstChild);
-      card.classList.add("has-video");
+      availability[index] = ok;
+      button.classList.toggle("has-video", ok);
+      state.textContent = ok ? "Watch rollout" : "Preview";
+      if (index === activeReal) renderRealVideo(index, false);
     });
   });
+
+  realRoot.appendChild(el("div", { class: "real-video-gallery" }, [stage, selector]));
+  renderRealVideo(0, false);
 })();
